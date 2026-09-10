@@ -106,6 +106,31 @@ export interface DailyHabitLog {
   updatedAt: string;
 }
 
+export interface LeaderboardRecord {
+  uid: string;
+  username: string;
+  displayName: string;
+  totalPoints: number;
+  studyPoints: number;
+  habitPoints: number;
+  streak: number;
+  paceScore: number;
+  completionScore: number;
+  rank: number;
+  previousRank: number;
+  updatedAt: string;
+}
+
+export type RankMovementType = 'up' | 'down' | 'same' | 'new';
+
+export interface RankMovement {
+  type: RankMovementType;
+  delta: number; // absolute change in positions
+  text: string;  // e.g. "▲ 2", "▼ 1", "─"
+}
+
+export type LeaderboardLimit = 10 | 25 | 50;
+
 export interface LeaderboardEntry {
   rank: number;
   userId: string;

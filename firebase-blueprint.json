@@ -151,17 +151,20 @@
       "description": "Aggregated user rank and points summary for the competition board",
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
+        "uid": { "type": "string" },
         "username": { "type": "string" },
         "displayName": { "type": "string" },
         "totalPoints": { "type": "number" },
         "studyPoints": { "type": "number" },
         "habitPoints": { "type": "number" },
         "streak": { "type": "number" },
+        "paceScore": { "type": "number" },
+        "completionScore": { "type": "number" },
         "rank": { "type": "number" },
+        "previousRank": { "type": "number" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["userId", "username", "displayName", "totalPoints", "studyPoints", "habitPoints", "streak", "updatedAt"]
+      "required": ["uid", "username", "displayName", "totalPoints", "studyPoints", "habitPoints", "streak", "paceScore", "completionScore", "rank", "previousRank", "updatedAt"]
     }
   },
   "firestore": {

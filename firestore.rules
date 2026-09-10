@@ -131,10 +131,20 @@ service cloud.firestore {
 
     // Leaderboard Summaries
     match /leaderboard/{userId} {
-      // Authenticated approved users can read rankings
+      // Authenticated approved users can read public rankings
       allow read: if isAuthenticated() && (isApproved() || isAdmin());
-      // Frontend clients cannot manipulate leaderboard rankings
-      allow create, update, delete: if isAdmin();
+      // Admin or authoritative backend operations can create/manage records
+      allow create: if isAdmin();
+      // Users cannot directly manipulate points, rank, or previousRank
+      allow update: if isAdmin() || (
+        isOwner(userId) && isApproved() &&
+        request.resource.data.totalPoints == resource.data.totalPoints &&
+        request.resource.data.studyPoints == resource.data.studyPoints &&
+        request.resource.data.habitPoints == resource.data.habitPoints &&
+        request.resource.data.rank == resource.data.rank &&
+        request.resource.data.previousRank == resource.data.previousRank
+      );
+      allow delete: if isAdmin();
     }
   }
 }

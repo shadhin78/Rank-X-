@@ -109,7 +109,23 @@ export class InMemoryScoringStore implements ScoringStore {
   }
 
   async updateLeaderboardEntry(entry: any): Promise<void> {
-    this.leaderboard.set(entry.userId, JSON.parse(JSON.stringify(entry)));
+    const uid = entry.uid || entry.userId;
+    if (!uid) return;
+    const cleanRecord = {
+      uid,
+      username: entry.username || '',
+      displayName: entry.displayName || '',
+      totalPoints: entry.totalPoints ?? 0,
+      studyPoints: entry.studyPoints ?? 0,
+      habitPoints: entry.habitPoints ?? 0,
+      streak: entry.streak ?? 0,
+      paceScore: entry.paceScore ?? 100,
+      completionScore: entry.completionScore ?? 0,
+      rank: entry.rank ?? 0,
+      previousRank: entry.previousRank ?? 0,
+      updatedAt: entry.updatedAt || new Date().toISOString(),
+    };
+    this.leaderboard.set(uid, cleanRecord);
   }
 }
 
@@ -233,7 +249,23 @@ export class FirestoreScoringStore implements ScoringStore {
 
   async updateLeaderboardEntry(entry: any): Promise<void> {
     try {
-      await setDoc(doc(firestoreDb, 'leaderboard', entry.userId), entry, { merge: true });
+      const uid = entry.uid || entry.userId;
+      if (!uid) return;
+      const cleanRecord = {
+        uid,
+        username: entry.username || '',
+        displayName: entry.displayName || '',
+        totalPoints: entry.totalPoints ?? 0,
+        studyPoints: entry.studyPoints ?? 0,
+        habitPoints: entry.habitPoints ?? 0,
+        streak: entry.streak ?? 0,
+        paceScore: entry.paceScore ?? 100,
+        completionScore: entry.completionScore ?? 0,
+        rank: entry.rank ?? 0,
+        previousRank: entry.previousRank ?? 0,
+        updatedAt: entry.updatedAt || new Date().toISOString(),
+      };
+      await setDoc(doc(firestoreDb, 'leaderboard', uid), cleanRecord, { merge: true });
     } catch (err) {
       console.warn('[FirestoreScoringStore] updateLeaderboardEntry warning:', err);
     }

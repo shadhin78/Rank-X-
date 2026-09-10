@@ -75,13 +75,18 @@ export interface ScoringStore {
   saveScoreEvent(event: ScoreEvent): Promise<void>;
 
   updateLeaderboardEntry(entry: {
-    userId: string;
+    uid: string;
+    userId?: string;
     username: string;
     displayName: string;
     totalPoints: number;
     studyPoints: number;
     habitPoints: number;
     streak: number;
+    paceScore?: number;
+    completionScore?: number;
+    rank?: number;
+    previousRank?: number;
     updatedAt: string;
   }): Promise<void>;
 }
@@ -246,6 +251,7 @@ export async function executeChapterCompletion(
 
   // 7. Update leaderboard summary
   await store.updateLeaderboardEntry({
+    uid: user.uid,
     userId: user.uid,
     username: user.username,
     displayName: user.displayName,
@@ -253,6 +259,7 @@ export async function executeChapterCompletion(
     studyPoints: nextStudyPoints + programBonusAwarded,
     habitPoints: user.habitPoints,
     streak: user.streak,
+    completionScore: totalChapCount > 0 ? Math.round((completedChapCount / totalChapCount) * 100) : 0,
     updatedAt: now,
   });
 
@@ -447,6 +454,7 @@ export async function executeHabitCompletion(
 
   // 7. Update leaderboard summary
   await store.updateLeaderboardEntry({
+    uid: user.uid,
     userId: user.uid,
     username: user.username,
     displayName: user.displayName,

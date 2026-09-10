@@ -1,244 +1,248 @@
-import React, { useState } from 'react';
-import { Trophy, Flame, Medal, ArrowUp, ArrowDown, Minus, Filter, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Trophy,
+  Flame,
+  Medal,
+  Search,
+  Filter,
+  Zap,
+  Activity,
+  ChevronDown,
+  ChevronUp,
+  RotateCw,
+} from 'lucide-react';
 import { PageHeader } from '@/src/components/layout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/src/components/ui/card';
 import { Badge } from '@/src/components/ui/badge';
 import { Button } from '@/src/components/ui/button';
-
-interface LeaderboardUser {
-  rank: number;
-  id: string;
-  name: string;
-  points: number;
-  streak: number;
-  completedTasks: number;
-  trend: 'up' | 'down' | 'same';
-  isCurrentUser?: boolean;
-}
-
-const LEADERBOARD_DATA: LeaderboardUser[] = [
-  {
-    rank: 1,
-    id: 'u-1',
-    name: 'Sarah Chen',
-    points: 1640,
-    streak: 18,
-    completedTasks: 34,
-    trend: 'same',
-  },
-  {
-    rank: 2,
-    id: 'u-2',
-    name: 'Alex Rivera (You)',
-    points: 1420,
-    streak: 14,
-    completedTasks: 28,
-    trend: 'up',
-    isCurrentUser: true,
-  },
-  {
-    rank: 3,
-    id: 'u-3',
-    name: 'Marcus Vance',
-    points: 1180,
-    streak: 9,
-    completedTasks: 22,
-    trend: 'down',
-  },
-  {
-    rank: 4,
-    id: 'u-4',
-    name: 'Priya Sharma',
-    points: 980,
-    streak: 7,
-    completedTasks: 19,
-    trend: 'up',
-  },
-  {
-    rank: 5,
-    id: 'u-5',
-    name: 'David Kim',
-    points: 850,
-    streak: 5,
-    completedTasks: 15,
-    trend: 'same',
-  },
-];
+import { useAppStore } from '@/src/store';
+import {
+  leaderboardService,
+  type LeaderboardSubscriptionData,
+} from '@/src/services/leaderboardService';
+import type { LeaderboardRecord, LeaderboardLimit } from '@/src/types';
+import { PodiumCard } from './components/PodiumCard';
+import { LeaderboardTable } from './components/LeaderboardTable';
+import { LeaderboardMobileList } from './components/LeaderboardMobileList';
+import { CurrentUserBanner } from './components/CurrentUserBanner';
+import { RealtimeTestConsole } from './components/RealtimeTestConsole';
 
 export function LeaderboardPage() {
-  const [filterPeriod, setFilterPeriod] = useState<'weekly' | 'allTime'>('weekly');
+  const currentUser = useAppStore((state) => state.currentUser);
+  const currentUid = currentUser?.uid || 'uid_alex_02'; // default demo user Alex Rivera
+
+  // Filter state
+  const [limitCount, setLimitCount] = useState<LeaderboardLimit>(10);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showTestConsole, setShowTestConsole] = useState<boolean>(false);
+
+  // Realtime subscription data
+  const [data, setData] = useState<LeaderboardSubscriptionData>({
+    records: [],
+    userRecord: null,
+    userRank: 0,
+    totalCount: 0,
+    pointsToNext: { pointsNeeded: 0, userAhead: null, isLeader: false },
+    isRealtimeConnected: true,
+  });
+
+  // Subscribe to realtime updates via Firestore onSnapshot
+  useEffect(() => {
+    const unsubscribe = leaderboardService.subscribeLeaderboard(
+      {
+        limitCount,
+        currentUserId: currentUid,
+      },
+      (freshData) => {
+        setData(freshData);
+      },
+      (error) => {
+        console.warn('[LeaderboardPage] Realtime subscription notice:', error);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [limitCount, currentUid]);
+
+  // Filtered records for search
+  const filteredRecords = useMemo(() => {
+    if (!searchQuery.trim()) return data.records;
+    const query = searchQuery.toLowerCase().trim();
+    return data.records.filter(
+      (r) =>
+        r.displayName.toLowerCase().includes(query) ||
+        r.username.toLowerCase().includes(query)
+    );
+  }, [data.records, searchQuery]);
+
+  // Top 3 for podium
+  const topThree = useMemo(() => {
+    return data.records.slice(0, 3);
+  }, [data.records]);
+
+  // Determine if current user is outside current slice
+  const isUserOutsideSlice = useMemo(() => {
+    if (!data.userRecord) return false;
+    return !data.records.some((r) => r.uid === data.userRecord?.uid);
+  }, [data.records, data.userRecord]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Page Header */}
       <PageHeader
         title="Global Leaderboard"
-        description="Realtime competitive ranking among peers based on verified study sessions and completed chapters."
-        badge={<Badge variant="live">Realtime Sync</Badge>}
+        description="Authoritative realtime rankings based on verified study progress and consistent habits."
+        badge={
+          <Badge variant="live" className="flex items-center gap-1.5 py-1 px-2.5">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Realtime onSnapshot</span>
+          </Badge>
+        }
         actions={
-          <div className="flex items-center rounded-lg border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900">
-            <button
+          <div className="flex items-center gap-2">
+            <Button
               type="button"
-              onClick={() => setFilterPeriod('weekly')}
-              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                filterPeriod === 'weekly'
-                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                  : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400'
-              }`}
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTestConsole((prev) => !prev)}
+              className="text-xs font-semibold flex items-center gap-1.5"
             >
-              This Week
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterPeriod('allTime')}
-              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                filterPeriod === 'allTime'
-                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                  : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400'
-              }`}
-            >
-              All Time
-            </button>
+              <Zap className="h-3.5 w-3.5 text-amber-500" />
+              <span>{showTestConsole ? 'Hide Test Console' : '🧪 Test Realtime Sync'}</span>
+              {showTestConsole ? (
+                <ChevronUp className="h-3 w-3 ml-0.5" />
+              ) : (
+                <ChevronDown className="h-3 w-3 ml-0.5" />
+              )}
+            </Button>
           </div>
         }
       />
 
+      {/* Realtime Multi-User Testing Console */}
+      {showTestConsole && (
+        <RealtimeTestConsole
+          records={data.records}
+          isRealtimeConnected={data.isRealtimeConnected}
+        />
+      )}
+
+      {/* Current User Standing Banner */}
+      <CurrentUserBanner
+        userRecord={data.userRecord}
+        userRank={data.userRank}
+        pointsToNext={data.pointsToNext}
+        isOutsideTopSlice={isUserOutsideSlice}
+      />
+
       {/* Top 3 Podium Cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {/* 2nd Place */}
-        <Card className="order-2 md:order-1 border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-b from-indigo-50/20 to-transparent">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-zinc-200 text-zinc-700 font-bold text-sm dark:bg-zinc-800 dark:text-zinc-300">
-              #2
+      {topThree.length >= 3 && !searchQuery && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            Current Leaders
+          </h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {/* 2nd Place (Silver) */}
+            <div className="order-2 md:order-1">
+              <PodiumCard
+                record={topThree[1]}
+                place={2}
+                isCurrentUser={topThree[1].uid === currentUid}
+              />
             </div>
-            <CardTitle className="text-base mt-2">Alex Rivera (You)</CardTitle>
-            <CardDescription className="text-xs">14d study streak</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center pt-0 pb-4">
-            <div className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-              1,420 pts
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* 1st Place */}
-        <Card className="order-1 md:order-2 border-amber-200/80 dark:border-amber-900/60 bg-gradient-to-b from-amber-50/30 to-transparent relative shadow-xs">
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-            <Badge variant="warning" className="px-2 py-0.5 text-[10px] font-bold">
-              👑 Leader
-            </Badge>
+            {/* 1st Place (Gold) */}
+            <div className="order-1 md:order-2">
+              <PodiumCard
+                record={topThree[0]}
+                place={1}
+                isCurrentUser={topThree[0].uid === currentUid}
+              />
+            </div>
+
+            {/* 3rd Place (Bronze) */}
+            <div className="order-3">
+              <PodiumCard
+                record={topThree[2]}
+                place={3}
+                isCurrentUser={topThree[2].uid === currentUid}
+              />
+            </div>
           </div>
-          <CardHeader className="text-center pb-2 pt-6">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-800 font-bold text-base dark:bg-amber-950 dark:text-amber-300">
-              #1
-            </div>
-            <CardTitle className="text-base mt-2">Sarah Chen</CardTitle>
-            <CardDescription className="text-xs">18d study streak</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center pt-0 pb-4">
-            <div className="text-2xl font-bold text-amber-700 dark:text-amber-400">
-              1,640 pts
-            </div>
-          </CardContent>
-        </Card>
+        </div>
+      )}
 
-        {/* 3rd Place */}
-        <Card className="order-3 border-zinc-200/80 dark:border-zinc-800">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-amber-900/10 text-amber-800 font-bold text-sm dark:bg-amber-950/40 dark:text-amber-400">
-              #3
-            </div>
-            <CardTitle className="text-base mt-2">Marcus Vance</CardTitle>
-            <CardDescription className="text-xs">9d study streak</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center pt-0 pb-4">
-            <div className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-              1,180 pts
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Leaderboard Table View */}
+      {/* Standings Table & Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle>Full Standings</CardTitle>
-          <CardDescription>
-            Points update automatically when members mark study modules as completed
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-y border-zinc-100 bg-zinc-50/70 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-800/40 dark:text-zinc-400">
-                <tr>
-                  <th className="px-4 py-3 sm:px-6">Rank</th>
-                  <th className="px-4 py-3 sm:px-6">Participant</th>
-                  <th className="px-4 py-3 sm:px-6">Streak</th>
-                  <th className="px-4 py-3 sm:px-6">Completed</th>
-                  <th className="px-4 py-3 sm:px-6 text-right">Points</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                {LEADERBOARD_DATA.map((row) => (
-                  <tr
-                    key={row.id}
-                    className={`transition-colors ${
-                      row.isCurrentUser
-                        ? 'bg-indigo-50/60 dark:bg-indigo-950/40 font-medium'
-                        : 'hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30'
-                    }`}
-                  >
-                    <td className="whitespace-nowrap px-4 py-3 sm:px-6">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                            row.rank === 1
-                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                              : row.rank === 2
-                              ? 'bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200'
-                              : 'text-zinc-500'
-                          }`}
-                        >
-                          {row.rank}
-                        </span>
-                        {row.trend === 'up' && (
-                          <ArrowUp className="h-3.5 w-3.5 text-emerald-500" />
-                        )}
-                        {row.trend === 'down' && (
-                          <ArrowDown className="h-3.5 w-3.5 text-red-500" />
-                        )}
-                        {row.trend === 'same' && (
-                          <Minus className="h-3.5 w-3.5 text-zinc-400" />
-                        )}
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 sm:px-6">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                          {row.name.charAt(0)}
-                        </div>
-                        <span className="text-zinc-900 dark:text-zinc-100">
-                          {row.name}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 sm:px-6">
-                      <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-                        <Flame className="h-3.5 w-3.5" />
-                        {row.streak}d
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-xs text-zinc-500 sm:px-6">
-                      {row.completedTasks} modules
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-zinc-900 dark:text-zinc-100 sm:px-6">
-                      {row.points.toLocaleString()} pts
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-4">
+          <div>
+            <CardTitle>Standings</CardTitle>
+            <CardDescription>
+              {data.totalCount} active peers ranked by points and strict tie-breakers
+            </CardDescription>
           </div>
+
+          {/* Filter Controls: Top 10 / 25 / 50 and Search */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Search user..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 w-36 sm:w-48 rounded-md border border-zinc-200 bg-white pl-8 pr-3 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-indigo-500 focus:outline-hidden dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+              />
+            </div>
+
+            {/* Top N Selectors */}
+            <div className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-0.5 dark:border-zinc-800 dark:bg-zinc-900">
+              {([10, 25, 50] as LeaderboardLimit[]).map((limitVal) => (
+                <button
+                  key={limitVal}
+                  type="button"
+                  onClick={() => setLimitCount(limitVal)}
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    limitCount === limitVal
+                      ? 'bg-white text-zinc-900 shadow-2xs dark:bg-zinc-800 dark:text-zinc-100'
+                      : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  Top {limitVal}
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <LeaderboardTable
+              records={filteredRecords}
+              currentUserUid={currentUid}
+            />
+          </div>
+
+          {/* Mobile Compact Cards View */}
+          <div className="p-4 md:hidden">
+            <LeaderboardMobileList
+              records={filteredRecords}
+              currentUserUid={currentUid}
+            />
+          </div>
+
+          {/* Empty Search State */}
+          {filteredRecords.length === 0 && (
+            <div className="p-12 text-center text-zinc-500 dark:text-zinc-400">
+              <Trophy className="mx-auto h-8 w-8 text-zinc-400 mb-2" />
+              <p className="font-semibold text-sm">No participants match "{searchQuery}"</p>
+              <p className="text-xs mt-1">Try a different search term or clear the filter.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
