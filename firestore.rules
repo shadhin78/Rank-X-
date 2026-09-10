@@ -1,0 +1,140 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Auth helpers
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().role == 'admin';
+    }
+    
+    function isApproved() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().accountStatus == 'approved';
+    }
+
+    // Unique username lookup table
+    match /usernames/{username} {
+      // Anyone can check if a username is claimed
+      allow read: if true;
+
+      // An authenticated user can claim an unused username once during registration
+      allow create: if isAuthenticated() && 
+        request.resource.data.uid == request.auth.uid &&
+        !exists(/databases/$(database)/documents/usernames/$(username));
+
+      // Usernames are immutable
+      allow update, delete: if false;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      // Authenticated users can read their own profile even if pending/banned to know their status;
+      // Approved users can read other approved profiles (for rankings/leaderboards)
+      allow read: if isAuthenticated() && (
+        isOwner(userId) || 
+        isApproved() || 
+        isAdmin()
+      );
+
+      // Registration write:
+      // Must be owner, must start with role == 'user', accountStatus == 'pending', 
+      // and initial points/streak/rank strictly reset to zero
+      allow create: if isOwner(userId) &&
+        request.resource.data.uid == userId &&
+        request.resource.data.role == 'user' &&
+        request.resource.data.accountStatus == 'pending' &&
+        request.resource.data.totalPoints == 0 &&
+        request.resource.data.studyPoints == 0 &&
+        request.resource.data.habitPoints == 0 &&
+        request.resource.data.streak == 0 &&
+        request.resource.data.rank == 0;
+
+      // Update rules:
+      // 1. Admins can update any user profile (e.g. approving/banning or changing roles)
+      // 2. Regular users can only update their own profile AND cannot alter their role,
+      //    accountStatus, or score metrics
+      allow update: if isAdmin() || (
+        isOwner(userId) &&
+        isApproved() &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.accountStatus == resource.data.accountStatus &&
+        request.resource.data.totalPoints == resource.data.totalPoints &&
+        request.resource.data.studyPoints == resource.data.studyPoints &&
+        request.resource.data.habitPoints == resource.data.habitPoints &&
+        request.resource.data.streak == resource.data.streak &&
+        request.resource.data.rank == resource.data.rank
+      );
+
+      // Only admins can delete user records
+      allow delete: if isAdmin();
+    }
+
+    // User-specific Private Study Programs
+    match /programs/{programId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.ownerUid);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.ownerUid);
+    }
+
+    // User-specific Private Subjects
+    match /subjects/{subjectId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.ownerUid);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.ownerUid);
+    }
+
+    // User-specific Private Chapters
+    match /chapters/{chapterId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      allow create: if isApproved() && isOwner(request.resource.data.ownerUid);
+      allow update, delete: if isApproved() && isOwner(resource.data.ownerUid);
+    }
+
+    // User-specific Private Daily Habits
+    match /habits/{habitId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      allow create: if isApproved() && isOwner(request.resource.data.ownerUid);
+      allow update, delete: if isApproved() && isOwner(resource.data.ownerUid);
+    }
+
+    // User-specific Daily Habit Logs
+    match /habitLogs/{logId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      allow create: if isApproved() && isOwner(request.resource.data.ownerUid);
+      allow update, delete: if isApproved() && isOwner(resource.data.ownerUid);
+    }
+
+    // Immutable Score Events (Anti-Abuse Ledger)
+    match /scoreEvents/{eventId} {
+      // Users can only view their own score verification history
+      allow read: if isAuthenticated() && (
+        isOwner(resource.data.userId) || isAdmin()
+      );
+      // Frontend clients can NEVER write or forge score events directly
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Leaderboard Summaries
+    match /leaderboard/{userId} {
+      // Authenticated approved users can read rankings
+      allow read: if isAuthenticated() && (isApproved() || isAdmin());
+      // Frontend clients cannot manipulate leaderboard rankings
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "StudyRank",
+  "description": "Private productivity and competition platform for study programs, habits, and realtime leaderboards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

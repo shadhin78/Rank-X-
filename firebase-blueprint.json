@@ -1,0 +1,205 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with study metrics and access control",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "accountStatus": { "type": "string", "enum": ["pending", "approved", "banned"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastActiveAt": { "type": "string", "format": "date-time" },
+        "totalPoints": { "type": "number" },
+        "studyPoints": { "type": "number" },
+        "habitPoints": { "type": "number" },
+        "streak": { "type": "number" },
+        "rank": { "type": "number" }
+      },
+      "required": ["uid", "username", "displayName", "role", "accountStatus", "createdAt", "totalPoints", "studyPoints", "habitPoints", "streak", "rank"]
+    },
+    "UsernameClaim": {
+      "title": "UsernameClaim",
+      "description": "Unique username reservation mapping to a user ID",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "username": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "username", "createdAt"]
+    },
+    "StudyProgram": {
+      "title": "StudyProgram",
+      "description": "User-specific study program curriculum",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "startDate": { "type": "string" },
+        "targetDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "completed", "archived"] },
+        "totalSubjects": { "type": "number" },
+        "totalChapters": { "type": "number" },
+        "completedChapters": { "type": "number" },
+        "progressPercentage": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "name", "status", "totalSubjects", "totalChapters", "completedChapters", "progressPercentage", "createdAt", "updatedAt"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "Subject module within a study program",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "programId": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "programId", "ownerUid", "name", "order", "createdAt", "updatedAt"]
+    },
+    "Chapter": {
+      "title": "Chapter",
+      "description": "Chapter topic within a subject",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "programId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "order": { "type": "number" },
+        "status": { "type": "string", "enum": ["not_started", "in_progress", "completed"] },
+        "targetDate": { "type": "string" },
+        "estimatedMinutes": { "type": "number" },
+        "actualMinutes": { "type": "number" },
+        "completedAt": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "programId", "subjectId", "ownerUid", "name", "order", "status", "estimatedMinutes", "actualMinutes", "createdAt", "updatedAt"]
+    },
+    "Habit": {
+      "title": "Habit",
+      "description": "User-specific custom daily habit",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string", "enum": ["boolean", "checkbox", "number", "duration", "count", "time"] },
+        "targetValue": { "type": "string" },
+        "unit": { "type": "string" },
+        "pointValue": { "type": "number" },
+        "activeDays": { "type": "array", "items": { "type": "number" } },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "ownerUid", "name", "type", "pointValue", "activeDays", "startDate", "isActive", "createdAt", "updatedAt"]
+    },
+    "HabitLog": {
+      "title": "HabitLog",
+      "description": "Daily progress record for a user habit",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "habitId": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "date": { "type": "string" },
+        "targetValue": { "type": "string" },
+        "actualValue": { "type": "string" },
+        "completionPercentage": { "type": "number" },
+        "completed": { "type": "boolean" },
+        "earnedPoints": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "habitId", "ownerUid", "date", "completionPercentage", "completed", "earnedPoints", "createdAt", "updatedAt"]
+    },
+    "ScoreEvent": {
+      "title": "ScoreEvent",
+      "description": "Immutable ledger record of points awarded for chapter, habit, or bonus events",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "eventType": { "type": "string", "enum": ["chapter_completion", "habit_completion", "program_completion", "streak_bonus", "pace_bonus"] },
+        "targetId": { "type": "string" },
+        "category": { "type": "string", "enum": ["study", "habit", "bonus"] },
+        "pointsAwarded": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "eventType", "targetId", "category", "pointsAwarded", "createdAt"]
+    },
+    "LeaderboardSummary": {
+      "title": "LeaderboardSummary",
+      "description": "Aggregated user rank and points summary for the competition board",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "totalPoints": { "type": "number" },
+        "studyPoints": { "type": "number" },
+        "habitPoints": { "type": "number" },
+        "streak": { "type": "number" },
+        "rank": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "username", "displayName", "totalPoints", "studyPoints", "habitPoints", "streak", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile documents keyed by Firebase Auth UID"
+    },
+    "/usernames/{username}": {
+      "schema": "UsernameClaim",
+      "description": "Unique username claims keyed by lowercased username"
+    },
+    "/programs/{programId}": {
+      "schema": "StudyProgram",
+      "description": "Private study program documents owned by individual users"
+    },
+    "/subjects/{subjectId}": {
+      "schema": "Subject",
+      "description": "Private subject documents owned by individual users"
+    },
+    "/chapters/{chapterId}": {
+      "schema": "Chapter",
+      "description": "Private chapter documents owned by individual users"
+    },
+    "/habits/{habitId}": {
+      "schema": "Habit",
+      "description": "Private daily habit documents owned by individual users"
+    },
+    "/habitLogs/{logId}": {
+      "schema": "HabitLog",
+      "description": "Private daily habit logs owned by individual users"
+    },
+    "/scoreEvents/{eventId}": {
+      "schema": "ScoreEvent",
+      "description": "Immutable point audit events protected against direct client writes"
+    },
+    "/leaderboard/{userId}": {
+      "schema": "LeaderboardSummary",
+      "description": "Server-synchronized leaderboard standings"
+    }
+  }
+}
