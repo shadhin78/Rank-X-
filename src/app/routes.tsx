@@ -44,11 +44,15 @@ const AdminActivityPage = lazy(() =>
 const AdminLeaderboardPage = lazy(() =>
   import('@/src/features/admin/AdminLeaderboardPage').then((m) => ({ default: m.AdminLeaderboardPage }))
 );
+const AnalyticsPage = lazy(() =>
+  import('@/src/features/analytics/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage }))
+);
 
 export const appRouteList = [
   { path: '/login', component: LoginPage, publicOnly: true },
   { path: '/register', component: RegisterPage, publicOnly: true },
   { path: '/dashboard', component: DashboardPage },
+  { path: '/analytics', component: AnalyticsPage },
   { path: '/programs', component: ProgramsPage },
   { path: '/habits', component: HabitsPage },
   { path: '/leaderboard', component: LeaderboardPage },

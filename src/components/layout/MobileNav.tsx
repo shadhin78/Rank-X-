@@ -5,6 +5,7 @@ import {
   BookOpen,
   CheckCircle2,
   Trophy,
+  BarChart2,
   Menu,
   X,
   User,
@@ -158,6 +159,20 @@ export function MobileNav() {
             {/* Navigation links */}
             <div className="flex-1 overflow-y-auto space-y-4 py-2">
               <div className="space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  Analytics & Progress
+                </p>
+                <Link
+                  to="/analytics"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 min-h-[44px]"
+                >
+                  <BarChart2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>Progress Analytics</span>
+                </Link>
+              </div>
+
+              <div className="space-y-1 pt-2 border-t border-zinc-100 dark:border-zinc-800">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                   Account
                 </p>

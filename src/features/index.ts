@@ -12,3 +12,4 @@ export * from './admin/AdminOverviewPage';
 export * from './admin/AdminUsersPage';
 export * from './admin/AdminApprovalsPage';
 export * from './admin/AdminActivityPage';
+export * from './analytics/AnalyticsPage';

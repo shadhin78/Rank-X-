@@ -26,6 +26,9 @@ const BannedAccountPage = lazy(() =>
 const DashboardPage = lazy(() =>
   import('@/src/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage }))
 );
+const AnalyticsPage = lazy(() =>
+  import('@/src/features/analytics/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage }))
+);
 const ProgramsPage = lazy(() =>
   import('@/src/features/programs/ProgramsPage').then((m) => ({ default: m.ProgramsPage }))
 );
@@ -217,6 +220,14 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute>
+              <AnalyticsPage />
             </ProtectedRoute>
           }
         />

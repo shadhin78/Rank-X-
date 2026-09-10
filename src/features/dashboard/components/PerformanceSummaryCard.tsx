@@ -122,6 +122,17 @@ export function PerformanceSummaryCard({
             </div>
           </div>
         </div>
+
+        {/* Deep Dive Action */}
+        <div className="pt-1">
+          <a
+            href="/analytics"
+            className="flex items-center justify-center gap-1.5 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 py-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
+          >
+            <span>View Full Analytics & Diagnostics</span>
+            <TrendingUp className="h-3.5 w-3.5" />
+          </a>
+        </div>
       </CardContent>
     </Card>
   );

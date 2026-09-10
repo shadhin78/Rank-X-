@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Calendar, ArrowUpRight, Plus, ChevronRight } from 'lucide-react';
+import { BookOpen, Calendar, ArrowUpRight, Plus, ChevronRight, Compass } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/src/components/ui/card';
 import { Button } from '@/src/components/ui/button';
 import { Badge } from '@/src/components/ui/badge';
-import { programService } from '@/src/services/programService';
+import { calculateDetailedProgramPace } from '@/src/lib/scoring/paceAnalytics';
 import type { StudyProgram } from '@/src/types';
 
 interface ActiveProgramsCardProps {
@@ -47,23 +47,43 @@ export function ActiveProgramsCard({
             </Badge>
           </div>
           <CardDescription className="text-xs">
-            Curriculum tracks, chapter progress, and pacing targets
+            Curriculum tracks, chapter progress, and pace metrics
           </CardDescription>
         </div>
-        <Link to="/programs">
-          <Button variant="ghost" size="sm" className="text-xs">
-            <span>View All</span>
-            <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/analytics">
+            <Button variant="outline" size="sm" className="text-xs h-8">
+              <Compass className="mr-1 h-3.5 w-3.5 text-indigo-500" />
+              <span>Pace Projections</span>
+            </Button>
+          </Link>
+          <Link to="/programs">
+            <Button variant="ghost" size="sm" className="text-xs h-8">
+              <span>View All</span>
+              <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-3">
         {activePrograms.length > 0 ? (
           <div className="space-y-3">
             {activePrograms.slice(0, 3).map((prog) => {
-              const pace = programService.getPaceStatus(prog);
-              const progressPct = Math.min(100, Math.max(0, prog.progressPercentage || 0));
+              const detailedPace = calculateDetailedProgramPace(prog);
+              const progressPct = detailedPace.actualProgress;
+
+              const badgeVariant =
+                detailedPace.classification === 'Ahead'
+                  ? 'success'
+                  : detailedPace.classification === 'Behind'
+                  ? 'danger'
+                  : 'default';
+
+              const paceText =
+                detailedPace.pacePercentage > 0
+                  ? `+${detailedPace.pacePercentage}%`
+                  : `${detailedPace.pacePercentage}%`;
 
               return (
                 <Link
@@ -79,9 +99,9 @@ export function ActiveProgramsCard({
                         <span className="text-sm font-semibold text-zinc-900 group-hover:text-indigo-600 dark:text-zinc-100 dark:group-hover:text-indigo-400 transition-colors truncate">
                           {prog.name}
                         </span>
-                        {/* Pace Badge */}
-                        <Badge variant={pace.variant} className="text-[10px] font-semibold">
-                          {pace.label}
+                        {/* Pace Badge with exact Ahead/On Track/Behind and % */}
+                        <Badge variant={badgeVariant} className="text-[10px] font-semibold">
+                          {detailedPace.classification} ({paceText})
                         </Badge>
                         {/* Status Badge */}
                         <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-semibold">
@@ -103,7 +123,7 @@ export function ActiveProgramsCard({
                           <strong className="font-semibold text-zinc-700 dark:text-zinc-300">
                             {prog.totalChapters || 0}
                           </strong>{' '}
-                          chapters completed
+                          chapters (Expected: {detailedPace.expectedChapters})
                         </span>
                       </div>
                     </div>
@@ -120,8 +140,10 @@ export function ActiveProgramsCard({
                       <div className="h-2 w-20 rounded-full bg-zinc-100 overflow-hidden dark:bg-zinc-800">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
-                            progressPct === 100
+                            detailedPace.classification === 'Ahead'
                               ? 'bg-emerald-500'
+                              : detailedPace.classification === 'Behind'
+                              ? 'bg-rose-500'
                               : 'bg-indigo-600 dark:bg-indigo-500'
                           }`}
                           style={{ width: `${progressPct}%` }}

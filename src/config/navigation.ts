@@ -1,7 +1,7 @@
 export interface NavItemConfig {
   title: string;
   href: string;
-  iconName: 'LayoutDashboard' | 'BookOpen' | 'CheckCircle2' | 'Trophy' | 'User' | 'Settings' | 'ShieldAlert' | 'Users' | 'UserCheck' | 'Activity';
+  iconName: 'LayoutDashboard' | 'BookOpen' | 'CheckCircle2' | 'BarChart2' | 'Trophy' | 'User' | 'Settings' | 'ShieldAlert' | 'Users' | 'UserCheck' | 'Activity';
   badge?: string;
   adminOnly?: boolean;
 }
@@ -34,6 +34,11 @@ export const navigationConfig: {
         title: 'Daily Habits',
         href: '/habits',
         iconName: 'CheckCircle2',
+      },
+      {
+        title: 'Analytics',
+        href: '/analytics',
+        iconName: 'BarChart2',
       },
     ],
   },

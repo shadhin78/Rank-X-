@@ -210,6 +210,86 @@ export interface PaceCalculationResult {
   behindByDays?: number;
 }
 
+export type PaceStatusLabel = 'Ahead' | 'On Track' | 'Behind';
+
+export interface DetailedProgramPace {
+  programId: string;
+  programName: string;
+  startDate: string;
+  targetDate: string | null;
+  daysElapsed: number;
+  daysRemaining: number | null;
+  totalDays: number | null;
+  totalChapters: number;
+  completedChapters: number;
+  expectedChapters: number;
+  expectedProgress: number; // percentage (0 - 100)
+  actualProgress: number;   // percentage (0 - 100)
+  pacePercentage: number;   // relative pace difference: e.g. +25%
+  absolutePaceDelta: number; // actualProgress - expectedProgress (e.g. +5%)
+  estimatedCompletionDate: string | null;
+  classification: PaceStatusLabel;
+  status: ProgramStatus;
+  velocityChaptersPerDay: number;
+}
+
+export interface UserMultiStreaks {
+  dailyHabitStreak: number;
+  studyStreak: number;
+  overallStreak: number;
+  longestStreak: number;
+  todayHabitCompleted: boolean;
+  todayStudyCompleted: boolean;
+  todayOverallCompleted: boolean;
+  lastActiveDate: string;
+}
+
+export interface TimeSeriesDataPoint {
+  date: string;
+  label: string;
+  value: number;
+  secondaryValue?: number;
+  meta?: string;
+}
+
+export interface PerformanceInsights {
+  improving: string[];
+  fallingBehind: string[];
+  weakestProgram: {
+    programId: string;
+    name: string;
+    pacePercentage: number;
+    expectedChapters: number;
+    actualChapters: number;
+    totalChapters: number;
+    daysRemaining: number | null;
+    classification: PaceStatusLabel;
+    recommendation: string;
+  } | null;
+  inconsistentHabits: Array<{
+    habitId: string;
+    name: string;
+    target: string;
+    completionRate: number; // 0 - 100%
+    missedDaysCount: number;
+    recentTrend: 'improving' | 'declining' | 'stagnant';
+    suggestion: string;
+  }>;
+}
+
+export interface ProgressAnalyticsPayload {
+  dailyPoints: TimeSeriesDataPoint[];
+  weeklyPoints: TimeSeriesDataPoint[];
+  monthlyPoints: TimeSeriesDataPoint[];
+  chapterCompletionTrend: TimeSeriesDataPoint[];
+  habitCompletionTrend: TimeSeriesDataPoint[];
+  streakHistory: TimeSeriesDataPoint[];
+  paceHistory: TimeSeriesDataPoint[];
+  programPaces: DetailedProgramPace[];
+  streaks: UserMultiStreaks;
+  insights: PerformanceInsights;
+}
+
 export interface ChapterPointsBreakdown {
   totalPoints: number;
   basePoints: number;
