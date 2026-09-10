@@ -3,7 +3,7 @@
  */
 
 export type UserRole = 'user' | 'admin';
-export type AccountStatus = 'pending' | 'approved' | 'banned';
+export type AccountStatus = 'pending' | 'approved' | 'banned' | 'deactivated';
 
 export interface UserProfile {
   uid: string;
@@ -119,6 +119,7 @@ export interface LeaderboardRecord {
   rank: number;
   previousRank: number;
   updatedAt: string;
+  isTestFixture?: boolean;
 }
 
 export type RankMovementType = 'up' | 'down' | 'same' | 'new';
@@ -256,4 +257,55 @@ export interface ScoringTransactionResult {
   };
   programBonusAwarded?: number;
   message?: string;
+}
+
+export type AuditAction =
+  | 'USER_APPROVED'
+  | 'USER_BANNED'
+  | 'USER_UNBANNED'
+  | 'ACCOUNT_DEACTIVATED'
+  | 'USER_ROLE_CHANGED'
+  | 'PROGRAM_INSPECTED'
+  | 'LEADERBOARD_RESYNC';
+
+export interface AuditLogEntry {
+  id: string;
+  actorUid: string;
+  actorUsername: string;
+  action: AuditAction;
+  targetUid: string;
+  targetUsername?: string;
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+export interface AdminPaginatedUsers {
+  users: UserProfile[];
+  totalCount: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface AdminOverviewStats {
+  totalUsers: number;
+  pendingApprovals: number;
+  activeUsers: number;
+  bannedUsers: number;
+  deactivatedUsers: number;
+  auditLogsCount: number;
+  recentAuditLogs: AuditLogEntry[];
+  recentPending: UserProfile[];
+}
+
+export interface AdminUserDetailPerformance {
+  user: UserProfile;
+  programsCount: number;
+  completedChaptersCount: number;
+  totalChaptersCount: number;
+  habitsCount: number;
+  completionScore: number;
+  paceScore: number;
+  recentScoreEvents: ScoreEvent[];
+  programs: StudyProgram[];
 }

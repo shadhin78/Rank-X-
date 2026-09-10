@@ -86,35 +86,36 @@ service cloud.firestore {
 
     // User-specific Private Study Programs
     match /programs/{programId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      // Owner or administrator can read for curriculum inspection
+      allow read: if isAuthenticated() && (isOwner(resource.data.ownerUid) || isAdmin());
       allow create: if isAuthenticated() && isOwner(request.resource.data.ownerUid);
-      allow update, delete: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      allow update, delete: if isAuthenticated() && (isOwner(resource.data.ownerUid) || isAdmin());
     }
 
     // User-specific Private Subjects
     match /subjects/{subjectId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      allow read: if isAuthenticated() && (isOwner(resource.data.ownerUid) || isAdmin());
       allow create: if isAuthenticated() && isOwner(request.resource.data.ownerUid);
-      allow update, delete: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      allow update, delete: if isAuthenticated() && (isOwner(resource.data.ownerUid) || isAdmin());
     }
 
     // User-specific Private Chapters
     match /chapters/{chapterId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      allow read: if isAuthenticated() && (isOwner(resource.data.ownerUid) || isAdmin());
       allow create: if isApproved() && isOwner(request.resource.data.ownerUid);
-      allow update, delete: if isApproved() && isOwner(resource.data.ownerUid);
+      allow update, delete: if isApproved() && (isOwner(resource.data.ownerUid) || isAdmin());
     }
 
     // User-specific Private Daily Habits
     match /habits/{habitId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      allow read: if isAuthenticated() && (isOwner(resource.data.ownerUid) || isAdmin());
       allow create: if isApproved() && isOwner(request.resource.data.ownerUid);
       allow update, delete: if isApproved() && isOwner(resource.data.ownerUid);
     }
 
     // User-specific Daily Habit Logs
     match /habitLogs/{logId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.ownerUid);
+      allow read: if isAuthenticated() && (isOwner(resource.data.ownerUid) || isAdmin());
       allow create: if isApproved() && isOwner(request.resource.data.ownerUid);
       allow update, delete: if isApproved() && isOwner(resource.data.ownerUid);
     }
@@ -129,22 +130,20 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
-    // Leaderboard Summaries
+    // Leaderboard Summaries (Public read for approved users, authoritative server/admin write only)
     match /leaderboard/{userId} {
       // Authenticated approved users can read public rankings
       allow read: if isAuthenticated() && (isApproved() || isAdmin());
-      // Admin or authoritative backend operations can create/manage records
-      allow create: if isAdmin();
-      // Users cannot directly manipulate points, rank, or previousRank
-      allow update: if isAdmin() || (
-        isOwner(userId) && isApproved() &&
-        request.resource.data.totalPoints == resource.data.totalPoints &&
-        request.resource.data.studyPoints == resource.data.studyPoints &&
-        request.resource.data.habitPoints == resource.data.habitPoints &&
-        request.resource.data.rank == resource.data.rank &&
-        request.resource.data.previousRank == resource.data.previousRank
-      );
-      allow delete: if isAdmin();
+
+      // Normal users CANNOT write leaderboard records, cannot change their rank, cannot change their points.
+      // Authoritative backend / admin operations only
+      allow write: if isAdmin();
+    }
+
+    // Administrative Audit Logs (Strictly read/write by admin only)
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
   }
 }

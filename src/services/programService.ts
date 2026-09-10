@@ -184,6 +184,32 @@ export const programService = {
   // ==========================================
 
   /**
+   * Explicitly seeds the default sample BBA curriculum for a user
+   */
+  async seedDefaultProgram(ownerUid: string): Promise<StudyProgram> {
+    const seeded = seedDefaultProgramForUser(ownerUid);
+    const localKey = `${LOCAL_PROGRAMS_PREFIX}${ownerUid}`;
+    const cached = getLocalData<StudyProgram>(localKey);
+    saveLocalData(localKey, [seeded.program, ...cached]);
+    saveLocalData(`${LOCAL_SUBJECTS_PREFIX}${ownerUid}`, seeded.subjects);
+    saveLocalData(`${LOCAL_CHAPTERS_PREFIX}${ownerUid}`, seeded.chapters);
+
+    try {
+      await setDoc(doc(firestoreDb, 'programs', seeded.program.id), seeded.program);
+      for (const s of seeded.subjects) {
+        await setDoc(doc(firestoreDb, 'subjects', s.id), s);
+      }
+      for (const c of seeded.chapters) {
+        await setDoc(doc(firestoreDb, 'chapters', c.id), c);
+      }
+    } catch (e) {
+      console.warn('[ProgramService] seedDefaultProgram Firestore write notice:', e);
+    }
+
+    return seeded.program;
+  },
+
+  /**
    * Subscribe to programs for the active user with realtime updates
    */
   subscribePrograms(

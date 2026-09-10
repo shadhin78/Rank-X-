@@ -67,26 +67,31 @@ export const navigationConfig: {
     title: 'Administration',
     items: [
       {
-        title: 'Admin Console',
+        title: 'Overview',
         href: '/admin',
         iconName: 'ShieldAlert',
         adminOnly: true,
       },
       {
-        title: 'Manage Users',
+        title: 'Users',
         href: '/admin/users',
         iconName: 'Users',
         adminOnly: true,
       },
       {
-        title: 'Approvals',
+        title: 'Pending Approvals',
         href: '/admin/approvals',
         iconName: 'UserCheck',
         adminOnly: true,
-        badge: '3',
       },
       {
-        title: 'Audit Activity',
+        title: 'Leaderboard',
+        href: '/admin/leaderboard',
+        iconName: 'Trophy',
+        adminOnly: true,
+      },
+      {
+        title: 'Activity',
         href: '/admin/activity',
         iconName: 'Activity',
         adminOnly: true,

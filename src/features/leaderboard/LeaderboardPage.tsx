@@ -29,7 +29,8 @@ import { RealtimeTestConsole } from './components/RealtimeTestConsole';
 
 export function LeaderboardPage() {
   const currentUser = useAppStore((state) => state.currentUser);
-  const currentUid = currentUser?.uid || 'uid_alex_02'; // default demo user Alex Rivera
+  // Authoritative current user identity derived strictly from authenticated session
+  const currentUid = currentUser?.uid;
 
   // Filter state
   const [limitCount, setLimitCount] = useState<LeaderboardLimit>(10);

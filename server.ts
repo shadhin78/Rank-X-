@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { scoringRouter } from './server/routes/scoring';
+import { adminRouter } from './server/routes/admin';
 
 async function startServer() {
   const app = express();
@@ -11,11 +12,14 @@ async function startServer() {
 
   // Health check API
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', service: 'StudyRank Secure Scoring Engine' });
+    res.json({ status: 'ok', service: 'StudyRank Secure Scoring & Admin Engine' });
   });
 
   // Secure Scoring Engine API
   app.use('/api/scoring', scoringRouter);
+
+  // Secure Server-Enforced Administration API
+  app.use('/api/admin', adminRouter);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {

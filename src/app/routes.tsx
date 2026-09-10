@@ -41,6 +41,9 @@ const AdminApprovalsPage = lazy(() =>
 const AdminActivityPage = lazy(() =>
   import('@/src/features/admin/AdminActivityPage').then((m) => ({ default: m.AdminActivityPage }))
 );
+const AdminLeaderboardPage = lazy(() =>
+  import('@/src/features/admin/AdminLeaderboardPage').then((m) => ({ default: m.AdminLeaderboardPage }))
+);
 
 export const appRouteList = [
   { path: '/login', component: LoginPage, publicOnly: true },
@@ -54,5 +57,6 @@ export const appRouteList = [
   { path: '/admin', component: AdminOverviewPage },
   { path: '/admin/users', component: AdminUsersPage },
   { path: '/admin/approvals', component: AdminApprovalsPage },
+  { path: '/admin/leaderboard', component: AdminLeaderboardPage },
   { path: '/admin/activity', component: AdminActivityPage },
 ];

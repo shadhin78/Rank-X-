@@ -356,19 +356,22 @@ export const authService = {
   },
 
   /**
-   * Admin: update a user's accountStatus ('pending' | 'approved' | 'banned')
+   * Admin: update a user's accountStatus ('pending' | 'approved' | 'banned' | 'deactivated')
+   * Strictly routes through server-enforced administrative endpoints.
    */
   async updateAccountStatus(uid: string, newStatus: AccountStatus): Promise<void> {
-    try {
-      await updateDoc(doc(firestoreDb, 'users', uid), {
-        accountStatus: newStatus,
-        updatedAt: new Date().toISOString(),
-      });
-    } catch (e) {
-      console.warn('Firestore update warning:', e);
+    // Dynamic import to avoid circular dependency
+    const { adminService } = await import('@/src/services/adminService');
+    
+    if (newStatus === 'approved') {
+      await adminService.approveUser(uid);
+    } else if (newStatus === 'banned') {
+      await adminService.banUser(uid, 'Administrator account status update');
+    } else if (newStatus === 'deactivated') {
+      await adminService.deactivateUser(uid, 'Administrative deactivation');
     }
 
-    // Update in local cache as well
+    // Sync in local cache for resilient offline fallback
     const local = getLocalUsersMap();
     for (const key of Object.keys(local)) {
       if (local[key].uid === uid) {
@@ -387,16 +390,11 @@ export const authService = {
 
   /**
    * Admin: update user role ('user' | 'admin')
+   * Strictly routes through server-enforced administrative endpoints.
    */
   async updateUserRole(uid: string, newRole: UserRole): Promise<void> {
-    try {
-      await updateDoc(doc(firestoreDb, 'users', uid), {
-        role: newRole,
-        updatedAt: new Date().toISOString(),
-      });
-    } catch (e) {
-      console.warn('Firestore role update warning:', e);
-    }
+    const { adminService } = await import('@/src/services/adminService');
+    await adminService.toggleRole(uid, newRole);
 
     const local = getLocalUsersMap();
     for (const key of Object.keys(local)) {

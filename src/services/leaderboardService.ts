@@ -27,7 +27,8 @@ import {
   onSnapshot,
   type Unsubscribe,
 } from 'firebase/firestore';
-import { firestoreDb } from '@/src/lib/firebase';
+import { firebaseAuth, firestoreDb } from '@/src/lib/firebase';
+import { authService } from '@/src/services/authService';
 import type { LeaderboardRecord, LeaderboardLimit } from '@/src/types';
 import {
   rankLeaderboardRecords,
@@ -63,7 +64,7 @@ export const INITIAL_LEADERBOARD_SEED: LeaderboardRecord[] = [
   {
     uid: 'uid_alex_02',
     username: 'alex_rivera',
-    displayName: 'Alex Rivera (You)',
+    displayName: 'Alex Rivera',
     totalPoints: 1420,
     studyPoints: 920,
     habitPoints: 500,
@@ -119,7 +120,7 @@ export const INITIAL_LEADERBOARD_SEED: LeaderboardRecord[] = [
   {
     uid: 'u_jordan_06',
     username: 'jordan_blake',
-    displayName: 'Jordan Blake (Test User A)',
+    displayName: 'Jordan Blake',
     totalPoints: 760,
     studyPoints: 510,
     habitPoints: 250,
@@ -129,11 +130,12 @@ export const INITIAL_LEADERBOARD_SEED: LeaderboardRecord[] = [
     rank: 6,
     previousRank: 6,
     updatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+    isTestFixture: true,
   },
   {
     uid: 'u_elena_07',
     username: 'elena_rostova',
-    displayName: 'Elena Rostova (Test User B)',
+    displayName: 'Elena Rostova',
     totalPoints: 690,
     studyPoints: 450,
     habitPoints: 240,
@@ -143,6 +145,7 @@ export const INITIAL_LEADERBOARD_SEED: LeaderboardRecord[] = [
     rank: 7,
     previousRank: 7,
     updatedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+    isTestFixture: true,
   },
   {
     uid: 'u_liam_08',
@@ -457,9 +460,15 @@ export const leaderboardService = {
     try {
       const url = new URL('/api/scoring/leaderboard', window.location.origin);
       url.searchParams.set('limit', String(limitCount));
-      if (userId) url.searchParams.set('userId', userId);
 
-      const res = await fetch(url.toString());
+      // Pass authenticated UID in standard Authorization Bearer header
+      const headers: Record<string, string> = {};
+      const activeUid = userId || firebaseAuth.currentUser?.uid || authService.getStoredSession()?.uid;
+      if (activeUid) {
+        headers['Authorization'] = `Bearer ${activeUid}`;
+      }
+
+      const res = await fetch(url.toString(), { headers });
       if (res.ok) {
         const data = await res.json();
         return data;
@@ -472,7 +481,7 @@ export const leaderboardService = {
 
   /**
    * Authoritative score simulation & multi-user testing tool.
-   * Can be used to change one user's score and verify real-time update
+   * Modifies scores via server-authoritative endpoint and verifies realtime rank updates
    * across multiple connected windows or devices without page reload.
    */
   async simulateScoreChange(params: {
@@ -484,7 +493,32 @@ export const leaderboardService = {
     deltaPaceScore?: number;
     setTotalPoints?: number;
   }): Promise<LeaderboardRecord[]> {
-    // 1. Load current records
+    // 1. Delegate strictly to authoritative server backend
+    try {
+      const res = await fetch('/api/scoring/simulate-score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.leaderboard && Array.isArray(json.leaderboard)) {
+          saveCachedLeaderboard(json.leaderboard);
+          if (broadcastChannel) {
+            broadcastChannel.postMessage({
+              type: 'LEADERBOARD_UPDATED',
+              records: json.leaderboard,
+            });
+          }
+          return json.leaderboard;
+        }
+      }
+    } catch (err) {
+      console.warn('[LeaderboardService] Server simulation endpoint unavailable, using local fallback:', err);
+    }
+
+    // 2. Offline / local fallback for isolated test execution
     const current = loadCachedLeaderboard();
     const existingIdx = current.findIndex((r) => r.uid === params.userId);
 
@@ -509,9 +543,7 @@ export const leaderboardService = {
       current.push(targetRecord);
     }
 
-    // Save previousRank for visual movement indicator
     const prevRank = targetRecord.rank || 0;
-
     const nextStudy = Math.max(0, targetRecord.studyPoints + (params.deltaStudyPoints || 0));
     const nextHabit = Math.max(0, targetRecord.habitPoints + (params.deltaHabitPoints || 0));
     const nextTotal = params.setTotalPoints !== undefined
@@ -540,38 +572,14 @@ export const leaderboardService = {
       current.push(updatedRecord);
     }
 
-    // Authoritative ranking computation with tie-breakers
     const newlyRanked = rankLeaderboardRecords(current);
     saveCachedLeaderboard(newlyRanked);
 
-    // Broadcast across tabs/windows immediately
     if (broadcastChannel) {
       broadcastChannel.postMessage({
         type: 'LEADERBOARD_UPDATED',
         records: newlyRanked,
       });
-    }
-
-    // Sync to Firestore if authenticated & authorized
-    try {
-      const docRef = doc(firestoreDb, 'leaderboard', params.userId);
-      const rankedItem = newlyRanked.find((r) => r.uid === params.userId);
-      if (rankedItem) {
-        await setDoc(docRef, rankedItem, { merge: true });
-      }
-    } catch (err) {
-      console.warn('[LeaderboardService] Firestore write warning (using authoritative backend):', err);
-    }
-
-    // Also notify authoritative server backend
-    try {
-      fetch('/api/scoring/simulate-score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
-      }).catch(() => {});
-    } catch {
-      // ignore
     }
 
     return newlyRanked;

@@ -53,6 +53,9 @@ const AdminApprovalsPage = lazy(() =>
 const AdminActivityPage = lazy(() =>
   import('@/src/features/admin/AdminActivityPage').then((m) => ({ default: m.AdminActivityPage }))
 );
+const AdminLeaderboardPage = lazy(() =>
+  import('@/src/features/admin/AdminLeaderboardPage').then((m) => ({ default: m.AdminLeaderboardPage }))
+);
 
 /**
  * Route guard for authenticated, approved users only.
@@ -288,6 +291,14 @@ export function AppRouter() {
           element={
             <AdminRoute>
               <AdminApprovalsPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/leaderboard"
+          element={
+            <AdminRoute>
+              <AdminLeaderboardPage />
             </AdminRoute>
           }
         />

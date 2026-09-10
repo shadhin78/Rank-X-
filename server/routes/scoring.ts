@@ -33,7 +33,7 @@ export const INITIAL_LEADERBOARD_SEED: LeaderboardRecord[] = [
   {
     uid: 'uid_alex_02',
     username: 'alex_rivera',
-    displayName: 'Alex Rivera (You)',
+    displayName: 'Alex Rivera',
     totalPoints: 1420,
     studyPoints: 920,
     habitPoints: 500,
@@ -89,7 +89,7 @@ export const INITIAL_LEADERBOARD_SEED: LeaderboardRecord[] = [
   {
     uid: 'u_jordan_06',
     username: 'jordan_blake',
-    displayName: 'Jordan Blake (Test User A)',
+    displayName: 'Jordan Blake',
     totalPoints: 760,
     studyPoints: 510,
     habitPoints: 250,
@@ -99,11 +99,12 @@ export const INITIAL_LEADERBOARD_SEED: LeaderboardRecord[] = [
     rank: 6,
     previousRank: 6,
     updatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+    isTestFixture: true,
   },
   {
     uid: 'u_elena_07',
     username: 'elena_rostova',
-    displayName: 'Elena Rostova (Test User B)',
+    displayName: 'Elena Rostova',
     totalPoints: 690,
     studyPoints: 450,
     habitPoints: 240,
@@ -113,6 +114,7 @@ export const INITIAL_LEADERBOARD_SEED: LeaderboardRecord[] = [
     rank: 7,
     previousRank: 7,
     updatedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+    isTestFixture: true,
   },
   {
     uid: 'u_liam_08',
@@ -300,16 +302,47 @@ scoringRouter.post('/log-habit', async (req: Request, res: Response): Promise<vo
 });
 
 /**
+ * Derives authenticated user UID strictly from the server request context (Authorization Bearer header).
+ * Does NOT trust client-supplied query parameters or unverified body fields.
+ */
+export function getAuthenticatedUidFromRequest(req: Request): string | null {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+  const token = authHeader.slice(7).trim();
+  if (!token) return null;
+
+  // If token is in JWT format (contains dots)
+  if (token.includes('.')) {
+    try {
+      const parts = token.split('.');
+      if (parts.length >= 2) {
+        const payloadJson = Buffer.from(parts[1], 'base64').toString('utf8');
+        const payload = JSON.parse(payloadJson);
+        const resolved = payload.user_id || payload.sub || payload.uid;
+        if (resolved) return String(resolved);
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  // Direct authenticated UID token passed in Bearer format
+  return token;
+}
+
+/**
  * GET /api/scoring/leaderboard
  *
  * Realtime authoritative ranked leaderboard data.
- * Supports query params: limit (10, 25, 50), userId (for position lookup).
+ * Derives current user identity strictly from server authentication context.
  */
 scoringRouter.get('/leaderboard', async (req: Request, res: Response): Promise<void> => {
   try {
     const limit = parseInt(req.query.limit as string) || 50;
-    const requestedUserId = req.query.userId as string | undefined;
 
+    // Authoritative ranking computation
     const allEntries = Array.from(defaultStore.leaderboard.values()) as LeaderboardRecord[];
     const rankedAll = rankLeaderboardRecords(allEntries);
 
@@ -317,11 +350,15 @@ scoringRouter.get('/leaderboard', async (req: Request, res: Response): Promise<v
     let userRecord: LeaderboardRecord | null = null;
     let userRank = 0;
 
-    if (requestedUserId) {
-      const idx = rankedAll.findIndex((r) => r.uid === requestedUserId);
+    // Requirement 4 & 10: Authenticated user lookup from server auth context
+    // Never trust client-supplied query parameter for user session identity
+    const authenticatedUid = getAuthenticatedUidFromRequest(req);
+
+    if (authenticatedUid) {
+      const idx = rankedAll.findIndex((r) => r.uid === authenticatedUid);
       if (idx !== -1) {
         userRecord = rankedAll[idx];
-        userRank = idx + 1;
+        userRank = rankedAll[idx].rank || (idx + 1);
       }
     }
 

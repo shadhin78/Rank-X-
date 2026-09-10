@@ -75,7 +75,7 @@ export function RealtimeTestConsole({
         </div>
 
         <p className="text-xs text-zinc-600 dark:text-zinc-400">
-          Verify multi-user realtime ranking: open StudyRank in a second tab or window, select <strong>Jordan Blake (Test User A)</strong> or <strong>Elena Rostova (Test User B)</strong> below, and click <span className="font-semibold text-zinc-800 dark:text-zinc-200">+100 Points</span>. The leaderboard re-ranks immediately on all connected screens without page reload.
+          Verify multi-user realtime ranking: open StudyRank in a second tab or window, select <strong>Jordan Blake [Test User]</strong> or <strong>Elena Rostova [Test User]</strong> below, and click <span className="font-semibold text-zinc-800 dark:text-zinc-200">+100 Points</span>. The leaderboard re-ranks immediately on all connected screens without page reload.
         </p>
 
         {/* Controls Row */}
@@ -92,7 +92,7 @@ export function RealtimeTestConsole({
             >
               {records.map((r) => (
                 <option key={r.uid} value={r.uid}>
-                  #{r.rank} {r.displayName} ({r.totalPoints} pts)
+                  #{r.rank} {r.displayName} {r.isTestFixture ? '[Test User]' : ''} ({r.totalPoints} pts)
                 </option>
               ))}
             </select>
